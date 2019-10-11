@@ -9,6 +9,7 @@ var copyrightYear;
 var rejoinder;
 var coreISBN;
 var ssoISBN;
+var author;
 var newProductCode;
 
 function wait(ms) {
@@ -69,6 +70,12 @@ function gotMessage(request, sender, sendResponse) {
       .getElementById("customfield_11345-val")
       .innerText.replace(/\s{2,}/g, " ")
       .trim();
+
+    author = document
+      .getElementById("customfield_10021-val")
+      .innerText.replace(/\s{2,}/g, " ")
+      .trim();
+
     console.log(
       jiraTicketNumber +
         " " +
@@ -88,7 +95,9 @@ function gotMessage(request, sender, sendResponse) {
         " " +
         coreISBN +
         " " +
-        ssoISBN
+        ssoISBN +
+        " " +
+        author
     );
 
     chrome.runtime.sendMessage({
@@ -103,7 +112,8 @@ function gotMessage(request, sender, sendResponse) {
         copyrightYear,
         rejoinder,
         coreISBN,
-        ssoISBN
+        ssoISBN,
+        author
       ]
     });
   } else if (request.message === "step2") {
@@ -134,9 +144,10 @@ function gotMessage(request, sender, sendResponse) {
       .trim();
 
     document.getElementById("abbr").focus();
+
     ///note: we have to use keypress instead of .value because we need the checker.
-    function setKeywordText(text) {
-      var el = document.getElementById("abbr");
+    function setKeywordText(text, element) {
+      var el = document.getElementById(element);
       el.value = text;
       var evt = document.createEvent("Events");
       evt.initEvent("change", true, true);
@@ -147,21 +158,30 @@ function gotMessage(request, sender, sendResponse) {
       return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
     };
 
-    var result = tempProductCode.splice(2, 0, "01");
-
-    wait(500);
-
-    setKeywordText(result);
-
-    document.getElementById("abbr").focus();
-    wait(500);
     var check = document.getElementsByClassName("code-info validation-hint")[0]
       .innerText;
-    if (check === "OK (not used in Geyser)") {
-      console.log("clear to go");
-    } else {
-      console.log("try next number");
+
+    function runThruProductCodes(i) {
+      if (String(i).length < 2) {
+        i = "0".concat(i); //adding zero as prefix for 1thru9
+      }
+      var result = tempProductCode.splice(2, 0, i);
+      document.getElementById("abbr").focus();
+      setKeywordText(result, "abbr");
+      wait(1000);
     }
+    runThruProductCodes(1);
+
+    for (let i = 1; !check === "OK (not used in Geyser)"; i++) {
+      console.log("are we even getting into the for statement???");
+      runThruProductCodes(i);
+    }
+
+    // if (check === "OK (not used in Geyser)") {
+    //   console.log("clear to go");
+    // } else {
+    //   console.log("try next number");
+    // }
 
     //now that we have our final product - we'll set it and send it.
     newProductCode = document
